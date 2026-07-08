@@ -125,12 +125,12 @@ def index():
     if keyword:
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
-        # 存在 SQL 注入漏洞 —— 使用 f-string 拼接
-        sql = (f"SELECT id, username, email, phone FROM users "
-               f"WHERE username LIKE '%{keyword}%' OR email LIKE '%{keyword}%'")
-        print(f"[SEARCH SQL] {sql}")
+        # 使用参数化查询，防止 SQL 注入
+        like_pattern = f"%{keyword}%"
+        sql = "SELECT id, username, email, phone FROM users WHERE username LIKE ? OR email LIKE ?"
+        print(f"[SEARCH] keyword={keyword} — 使用参数化查询 (username LIKE ? OR email LIKE ?)")
         try:
-            c.execute(sql)
+            c.execute(sql, (like_pattern, like_pattern))
             search_results = c.fetchall()
         except Exception as e:
             print(f"[SEARCH ERROR] {e}")
@@ -182,15 +182,14 @@ def register():
         email = request.form.get("email", "").strip()
         phone = request.form.get("phone", "").strip()
 
-        # 存在 SQL 注入漏洞 —— 使用 f-string 拼接
-        sql = (f"INSERT INTO users (username, password, email, phone) "
-               f"VALUES ('{username}', '{password}', '{email}', '{phone}')")
-        print(f"[REGISTER SQL] {sql}")
+        # 使用参数化查询，防止 SQL 注入
+        sql = "INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)"
+        print(f"[REGISTER] username={username} — 使用参数化查询 (?, ?, ?, ?)")
 
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
         try:
-            c.execute(sql)
+            c.execute(sql, (username, password, email, phone))
             conn.commit()
             flash("注册成功，请登录")
             return redirect("/login")
