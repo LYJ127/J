@@ -13,9 +13,51 @@
                 <li><span class="label">余额：</span>{{ user.balance }}</li>
             </ul>
         </div>
-        <form method="POST" action="/logout" style="display:inline;">
+
+        <div class="search-section">
+            <form method="GET" action="/" class="search-form">
+                <div class="search-group">
+                    <input type="text" name="keyword" class="search-input"
+                           placeholder="搜索用户名或邮箱..."
+                           value="{{ keyword or '' }}">
+                    <button type="submit" class="btn btn-search">搜索</button>
+                </div>
+            </form>
+        </div>
+
+        {% if keyword is defined and keyword %}
+            <div class="search-results">
+                <h3>搜索结果 — 关键词：<span class="keyword-tag">{{ keyword }}</span></h3>
+                {% if search_results %}
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>用户名</th>
+                                <th>邮箱</th>
+                                <th>手机</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in search_results %}
+                            <tr>
+                                <td>{{ row[0] }}</td>
+                                <td>{{ row[1] }}</td>
+                                <td>{{ row[2] }}</td>
+                                <td>{{ row[3] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="no-result">无搜索结果</div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <form method="POST" action="/logout" style="display:inline; margin-top:16px; display:block;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <button type="submit" class="btn btn-primary">退出登录</button>
+            <button type="submit" class="btn btn-primary" style="width:auto; padding:10px 32px;">退出登录</button>
         </form>
     </div>
 {% else %}

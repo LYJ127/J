@@ -2,8 +2,11 @@ import os
 import time
 import secrets
 import hashlib
+import sqlite3
 from functools import wraps
-from flask import Flask, render_template, request, redirect, session, abort
+from flask import (
+    Flask, render_template, request, redirect, session, abort, flash
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -11,14 +14,11 @@ app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=False,  # 有 HTTPS 证书后可设为 True
+    SESSION_COOKIE_SECURE=False,
 )
 
 # ============================================================
-# 密码以 werkzeug 的 pbkdf2:sha256 哈希存储，不再明文
-# 原始密码对照（仅用于说明，实际存储的是哈希值）：
-#   admin  -> admin123
-#   alice  -> alice2025
+# 内存用户字典（登录使用）
 # ============================================================
 USERS = {
     "admin": {
@@ -38,6 +38,29 @@ USERS = {
         "balance": 100,
     },
 }
+
+# ---------- SQLite 初始化 ----------
+def init_db():
+    os.makedirs("data", exist_ok=True)
+    conn = sqlite3.connect("data/users.db")
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT,
+            email TEXT,
+            phone TEXT
+        )
+    """)
+    # 插入默认用户（密码明文存储在DB中）
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) "
+              "VALUES ('admin', 'admin123', 'admin@example.com', '13800138000')")
+    c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) "
+              "VALUES ('alice', 'alice2025', 'alice@example.com', '13900139001')")
+    conn.commit()
+    conn.close()
+
 
 # ---------- CSRF 保护 ----------
 def generate_csrf_token():
@@ -60,20 +83,18 @@ def csrf_required(f):
 
 @app.context_processor
 def inject_csrf():
-    """所有模板自动注入 csrf_token（仅生成一次，避免与路由中显式传参冲突）"""
     token = generate_csrf_token()
     return dict(csrf_token=token)
 
 
 # ---------- 登录频率限制 ----------
-LOGIN_ATTEMPTS = {}  # IP -> [timestamp, ...]
+LOGIN_ATTEMPTS = {}
 
 
 def is_rate_limited(ip, max_attempts=5, window=60):
     now = time.time()
     if ip not in LOGIN_ATTEMPTS:
         LOGIN_ATTEMPTS[ip] = []
-    # 清除超出时间窗口的记录
     LOGIN_ATTEMPTS[ip] = [t for t in LOGIN_ATTEMPTS[ip] if now - t < window]
     if len(LOGIN_ATTEMPTS[ip]) >= max_attempts:
         return True
@@ -81,30 +102,53 @@ def is_rate_limited(ip, max_attempts=5, window=60):
     return False
 
 
-# 从模板显示的数据中移除敏感字段
 SAFE_FIELDS = ["username", "role", "email", "phone", "balance"]
 
 
 def safe_user_info(user):
-    """返回不包含密码字段的用户信息"""
     return {k: v for k, v in user.items() if k in SAFE_FIELDS}
 
 
-# ---------- 路由 ----------
+# ========== 路由 ==========
+
 @app.route("/")
 def index():
     username = session.get("username")
     user_info = None
+    search_results = None
+    keyword = request.args.get("keyword", "")
+
     if username and username in USERS:
         user_info = safe_user_info(USERS[username])
-    return render_template("index.html", user=user_info)
+
+    # 有关键词则执行搜索
+    if keyword:
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        # 存在 SQL 注入漏洞 —— 使用 f-string 拼接
+        sql = (f"SELECT id, username, email, phone FROM users "
+               f"WHERE username LIKE '%{keyword}%' OR email LIKE '%{keyword}%'")
+        print(f"[SEARCH SQL] {sql}")
+        try:
+            c.execute(sql)
+            search_results = c.fetchall()
+        except Exception as e:
+            print(f"[SEARCH ERROR] {e}")
+        finally:
+            conn.close()
+
+    return render_template(
+        "index.html",
+        user=user_info,
+        search_results=search_results,
+        keyword=keyword,
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
 @csrf_required
 def login():
     if request.method == "POST":
-        # 频率限制
         client_ip = request.remote_addr or "unknown"
         if is_rate_limited(client_ip):
             return render_template(
@@ -129,6 +173,36 @@ def login():
     return render_template("login.html")
 
 
+@app.route("/register", methods=["GET", "POST"])
+@csrf_required
+def register():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+
+        # 存在 SQL 注入漏洞 —— 使用 f-string 拼接
+        sql = (f"INSERT INTO users (username, password, email, phone) "
+               f"VALUES ('{username}', '{password}', '{email}', '{phone}')")
+        print(f"[REGISTER SQL] {sql}")
+
+        conn = sqlite3.connect("data/users.db")
+        c = conn.cursor()
+        try:
+            c.execute(sql)
+            conn.commit()
+            flash("注册成功，请登录")
+            return redirect("/login")
+        except Exception as e:
+            print(f"[REGISTER ERROR] {e}")
+            return render_template("register.html", error=f"注册失败：{e}")
+        finally:
+            conn.close()
+
+    return render_template("register.html")
+
+
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
@@ -136,4 +210,5 @@ def logout():
 
 
 if __name__ == "__main__":
+    init_db()
     app.run(debug=False, host="0.0.0.0", port=5000)
