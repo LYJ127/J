@@ -2,6 +2,7 @@ import os
 import time
 import secrets
 import hashlib
+import uuid
 import sqlite3
 from functools import wraps
 from flask import (
@@ -9,6 +10,7 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from PIL import Image
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
@@ -20,6 +22,15 @@ app.config.update(
 )
 
 UPLOAD_FOLDER = os.path.join("static", "uploads")
+
+# 允许的图片文件扩展名
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
+MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 头像文件最大 2MB
+
+
+def allowed_file(filename):
+    """检查文件扩展名是否在允许列表中"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ============================================================
 # 内存用户字典（登录使用）
@@ -221,13 +232,39 @@ def upload():
         if not file or file.filename == "":
             return render_template("upload.html", error="请选择一个文件")
 
-        # 使用用户上传的原始文件名保存，不重命名、不做任何检查
-        filename = file.filename
-        save_path = os.path.join(UPLOAD_FOLDER, filename)
+        # 1. 检查文件扩展名
+        if not allowed_file(file.filename):
+            return render_template("upload.html", error="仅支持上传图片文件（jpg、jpeg、png、gif、webp、bmp）")
+
+        # 2. 使用 secure_filename 清除路径穿越字符，并用 UUID 重命名防止文件名冲突
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        safe_name = secure_filename(file.filename)
+        # 若 secure_filename 处理后无扩展名（如纯中文），手动拼接
+        if '.' not in safe_name:
+            safe_name = f"{uuid.uuid4().hex}.{ext}"
+        else:
+            name_part = safe_name.rsplit('.', 1)[0]
+            safe_name = f"{uuid.uuid4().hex}.{ext}"
+
+        save_path = os.path.join(UPLOAD_FOLDER, safe_name)
         file.save(save_path)
 
-        file_url = url_for("static", filename=f"uploads/{filename}")
-        return render_template("upload.html", success=True, file_url=file_url, filename=filename)
+        # 3. 验证文件内容是否为有效图片（使用 Pillow）
+        try:
+            img = Image.open(save_path)
+            img.verify()  # 验证文件头是否为有效图片格式
+        except Exception:
+            os.remove(save_path)  # 非图片文件立即删除
+            return render_template("upload.html", error="文件内容不是有效图片，请上传正确的图片文件")
+
+        # 4. 检查文件实际大小（超过 2MB 提示）
+        actual_size = os.path.getsize(save_path)
+        if actual_size > MAX_AVATAR_SIZE:
+            os.remove(save_path)
+            return render_template("upload.html", error="图片文件过大，请上传 2MB 以内的图片")
+
+        file_url = url_for("static", filename=f"uploads/{safe_name}")
+        return render_template("upload.html", success=True, file_url=file_url, filename=safe_name)
 
     return render_template("upload.html")
 
