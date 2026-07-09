@@ -326,3 +326,161 @@ body {
 .data-table tbody tr:last-child td {
     border-bottom: none;
 }
+
+/* ---------- 上传页面 ---------- */
+.upload-card {
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.upload-success {
+    text-align: center;
+}
+
+.upload-ok {
+    font-size: 16px;
+    color: #2e7d32;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.preview-box {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 16px;
+    border: 3px dashed #ddd;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+}
+
+.avatar-preview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+}
+
+.file-link {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 16px;
+    word-break: break-all;
+}
+
+.file-link a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.file-input {
+    width: 100%;
+    padding: 8px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+/* ---------- 快捷操作入口 ---------- */
+.action-links {
+    margin: 12px 0 20px;
+    text-align: center;
+}
+
+.btn-outline {
+    display: inline-block;
+    padding: 8px 20px;
+    font-size: 14px;
+    border: 2px solid #667eea;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #fff;
+    color: #667eea;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    background: #667eea;
+    color: #fff;
+}
+
+/* ---------- 上传页面 ---------- */
+.upload-card {
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.upload-success {
+    text-align: center;
+}
+
+.upload-ok {
+    font-size: 16px;
+    color: #2e7d32;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.preview-box {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 16px;
+    border: 3px dashed #ddd;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+}
+
+.avatar-preview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+}
+
+.file-link {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 16px;
+    word-break: break-all;
+}
+
+.file-link a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.file-input {
+    width: 100%;
+    padding: 8px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+/* ---------- 快捷操作入口 ---------- */
+.action-links {
+    margin: 12px 0 20px;
+    text-align: center;
+}
+
+.btn-outline {
+    display: inline-block;
+    padding: 8px 20px;
+    font-size: 14px;
+    border: 2px solid #667eea;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #fff;
+    color: #667eea;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    background: #667eea;
+    color: #fff;
+}

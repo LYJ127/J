@@ -5,9 +5,10 @@ import hashlib
 import sqlite3
 from functools import wraps
 from flask import (
-    Flask, render_template, request, redirect, session, abort, flash
+    Flask, render_template, request, redirect, session, abort, flash, url_for
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
@@ -15,7 +16,10 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=False,
+    MAX_CONTENT_LENGTH=16 * 1024 * 1024,
 )
+
+UPLOAD_FOLDER = os.path.join("static", "uploads")
 
 # ============================================================
 # 内存用户字典（登录使用）
@@ -53,13 +57,23 @@ def init_db():
             phone TEXT
         )
     """)
-    # 插入默认用户（密码明文存储在DB中）
     c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) "
               "VALUES ('admin', 'admin123', 'admin@example.com', '13800138000')")
     c.execute("INSERT OR IGNORE INTO users (username, password, email, phone) "
               "VALUES ('alice', 'alice2025', 'alice@example.com', '13900139001')")
     conn.commit()
     conn.close()
+
+
+# ---------- 登录检查装饰器 ----------
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("username"):
+            flash("请先登录")
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
 
 
 # ---------- CSRF 保护 ----------
@@ -121,14 +135,12 @@ def index():
     if username and username in USERS:
         user_info = safe_user_info(USERS[username])
 
-    # 有关键词则执行搜索
     if keyword:
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
-        # 使用参数化查询，防止 SQL 注入
         like_pattern = f"%{keyword}%"
         sql = "SELECT id, username, email, phone FROM users WHERE username LIKE ? OR email LIKE ?"
-        print(f"[SEARCH] keyword={keyword} — 使用参数化查询 (username LIKE ? OR email LIKE ?)")
+        print(f"[SEARCH] keyword={keyword} — 使用参数化查询")
         try:
             c.execute(sql, (like_pattern, like_pattern))
             search_results = c.fetchall()
@@ -182,9 +194,8 @@ def register():
         email = request.form.get("email", "").strip()
         phone = request.form.get("phone", "").strip()
 
-        # 使用参数化查询，防止 SQL 注入
         sql = "INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)"
-        print(f"[REGISTER] username={username} — 使用参数化查询 (?, ?, ?, ?)")
+        print(f"[REGISTER] username={username} — 使用参数化查询")
 
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
@@ -202,6 +213,25 @@ def register():
     return render_template("register.html")
 
 
+@app.route("/upload", methods=["GET", "POST"])
+@login_required
+def upload():
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            return render_template("upload.html", error="请选择一个文件")
+
+        # 使用用户上传的原始文件名保存，不重命名、不做任何检查
+        filename = file.filename
+        save_path = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(save_path)
+
+        file_url = url_for("static", filename=f"uploads/{filename}")
+        return render_template("upload.html", success=True, file_url=file_url, filename=filename)
+
+    return render_template("upload.html")
+
+
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
@@ -209,5 +239,6 @@ def logout():
 
 
 if __name__ == "__main__":
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     init_db()
     app.run(debug=False, host="0.0.0.0", port=5000)
