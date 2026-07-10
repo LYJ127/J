@@ -246,8 +246,8 @@ def upload():
 @app.route("/profile")
 @login_required
 def profile():
-    user_id = request.args.get("user_id", type=int)
-    user = USER_BY_ID.get(user_id) if user_id else None
+    username = session.get("username")
+    user = USERS.get(username)
     if not user:
         flash("用户不存在")
         return redirect("/")
@@ -258,18 +258,23 @@ def profile():
 @app.route("/recharge", methods=["POST"])
 @login_required
 def recharge():
-    user_id = request.form.get("user_id", type=int)
-    amount = request.form.get("amount", type=float)
-
-    user = USER_BY_ID.get(user_id) if user_id else None
+    username = session.get("username")
+    user = USERS.get(username)
     if not user:
         flash("用户不存在")
         return redirect("/")
 
-    # 直接修改余额，不做正负检查
+    amount = request.form.get("amount", type=float)
+
+    # 检查金额是否为正数
+    if amount is None or amount <= 0:
+        flash("充值金额必须大于 0")
+        return redirect("/profile")
+
+    # 修改余额
     user["balance"] = user["balance"] + amount
     flash(f"充值成功，当前余额：{user['balance']}")
-    return redirect(f"/profile?user_id={user_id}")
+    return redirect("/profile")
 
 
 @app.route("/logout", methods=["POST"])
