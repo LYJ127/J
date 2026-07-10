@@ -22,21 +22,18 @@ app.config.update(
 )
 
 UPLOAD_FOLDER = os.path.join("static", "uploads")
-
-# 允许的图片文件扩展名
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
-MAX_AVATAR_SIZE = 2 * 1024 * 1024  # 头像文件最大 2MB
-
+MAX_AVATAR_SIZE = 2 * 1024 * 1024
 
 def allowed_file(filename):
-    """检查文件扩展名是否在允许列表中"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ============================================================
-# 内存用户字典（登录使用）
+# 用户数据（含 id，登录+个人中心共用）
 # ============================================================
 USERS = {
     "admin": {
+        "id": 1,
         "username": "admin",
         "password": generate_password_hash("admin123"),
         "role": "admin",
@@ -45,6 +42,7 @@ USERS = {
         "balance": 99999,
     },
     "alice": {
+        "id": 2,
         "username": "alice",
         "password": generate_password_hash("alice2025"),
         "role": "user",
@@ -53,6 +51,9 @@ USERS = {
         "balance": 100,
     },
 }
+
+# 通过 id 快速查找用户
+USER_BY_ID = {v["id"]: v for v in USERS.values()}
 
 # ---------- SQLite 初始化 ----------
 def init_db():
@@ -102,7 +103,6 @@ def csrf_required(f):
             if not token or token != session.get("csrf_token"):
                 abort(403, description="CSRF 验证失败，请刷新页面重试")
         return f(*args, **kwargs)
-
     return decorated
 
 
@@ -115,7 +115,6 @@ def inject_csrf():
 # ---------- 登录频率限制 ----------
 LOGIN_ATTEMPTS = {}
 
-
 def is_rate_limited(ip, max_attempts=5, window=60):
     now = time.time()
     if ip not in LOGIN_ATTEMPTS:
@@ -127,8 +126,7 @@ def is_rate_limited(ip, max_attempts=5, window=60):
     return False
 
 
-SAFE_FIELDS = ["username", "role", "email", "phone", "balance"]
-
+SAFE_FIELDS = ["id", "username", "role", "email", "phone", "balance"]
 
 def safe_user_info(user):
     return {k: v for k, v in user.items() if k in SAFE_FIELDS}
@@ -151,7 +149,6 @@ def index():
         c = conn.cursor()
         like_pattern = f"%{keyword}%"
         sql = "SELECT id, username, email, phone FROM users WHERE username LIKE ? OR email LIKE ?"
-        print(f"[SEARCH] keyword={keyword} — 使用参数化查询")
         try:
             c.execute(sql, (like_pattern, like_pattern))
             search_results = c.fetchall()
@@ -160,12 +157,7 @@ def index():
         finally:
             conn.close()
 
-    return render_template(
-        "index.html",
-        user=user_info,
-        search_results=search_results,
-        keyword=keyword,
-    )
+    return render_template("index.html", user=user_info, search_results=search_results, keyword=keyword)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -174,10 +166,7 @@ def login():
     if request.method == "POST":
         client_ip = request.remote_addr or "unknown"
         if is_rate_limited(client_ip):
-            return render_template(
-                "login.html",
-                error="登录尝试过于频繁，请 60 秒后再试",
-            )
+            return render_template("login.html", error="登录尝试过于频繁，请 60 秒后再试")
 
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
@@ -188,10 +177,7 @@ def login():
             session.permanent = True
             return render_template("index.html", user=safe_user_info(user))
         else:
-            return render_template(
-                "login.html",
-                error="用户名或密码错误",
-            )
+            return render_template("login.html", error="用户名或密码错误")
 
     return render_template("login.html")
 
@@ -206,7 +192,6 @@ def register():
         phone = request.form.get("phone", "").strip()
 
         sql = "INSERT INTO users (username, password, email, phone) VALUES (?, ?, ?, ?)"
-        print(f"[REGISTER] username={username} — 使用参数化查询")
 
         conn = sqlite3.connect("data/users.db")
         c = conn.cursor()
@@ -216,7 +201,6 @@ def register():
             flash("注册成功，请登录")
             return redirect("/login")
         except Exception as e:
-            print(f"[REGISTER ERROR] {e}")
             return render_template("register.html", error=f"注册失败：{e}")
         finally:
             conn.close()
@@ -232,32 +216,21 @@ def upload():
         if not file or file.filename == "":
             return render_template("upload.html", error="请选择一个文件")
 
-        # 1. 检查文件扩展名
         if not allowed_file(file.filename):
             return render_template("upload.html", error="仅支持上传图片文件（jpg、jpeg、png、gif、webp、bmp）")
 
-        # 2. 使用 secure_filename 清除路径穿越字符，并用 UUID 重命名防止文件名冲突
         ext = file.filename.rsplit('.', 1)[1].lower()
-        safe_name = secure_filename(file.filename)
-        # 若 secure_filename 处理后无扩展名（如纯中文），手动拼接
-        if '.' not in safe_name:
-            safe_name = f"{uuid.uuid4().hex}.{ext}"
-        else:
-            name_part = safe_name.rsplit('.', 1)[0]
-            safe_name = f"{uuid.uuid4().hex}.{ext}"
-
+        safe_name = f"{uuid.uuid4().hex}.{ext}"
         save_path = os.path.join(UPLOAD_FOLDER, safe_name)
         file.save(save_path)
 
-        # 3. 验证文件内容是否为有效图片（使用 Pillow）
         try:
             img = Image.open(save_path)
-            img.verify()  # 验证文件头是否为有效图片格式
+            img.verify()
         except Exception:
-            os.remove(save_path)  # 非图片文件立即删除
+            os.remove(save_path)
             return render_template("upload.html", error="文件内容不是有效图片，请上传正确的图片文件")
 
-        # 4. 检查文件实际大小（超过 2MB 提示）
         actual_size = os.path.getsize(save_path)
         if actual_size > MAX_AVATAR_SIZE:
             os.remove(save_path)
@@ -267,6 +240,36 @@ def upload():
         return render_template("upload.html", success=True, file_url=file_url, filename=safe_name)
 
     return render_template("upload.html")
+
+
+# ---------- 个人中心 ----------
+@app.route("/profile")
+@login_required
+def profile():
+    user_id = request.args.get("user_id", type=int)
+    user = USER_BY_ID.get(user_id) if user_id else None
+    if not user:
+        flash("用户不存在")
+        return redirect("/")
+    return render_template("profile.html", user=user)
+
+
+# ---------- 充值 ----------
+@app.route("/recharge", methods=["POST"])
+@login_required
+def recharge():
+    user_id = request.form.get("user_id", type=int)
+    amount = request.form.get("amount", type=float)
+
+    user = USER_BY_ID.get(user_id) if user_id else None
+    if not user:
+        flash("用户不存在")
+        return redirect("/")
+
+    # 直接修改余额，不做正负检查
+    user["balance"] = user["balance"] + amount
+    flash(f"充值成功，当前余额：{user['balance']}")
+    return redirect(f"/profile?user_id={user_id}")
 
 
 @app.route("/logout", methods=["POST"])
