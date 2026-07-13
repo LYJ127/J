@@ -283,6 +283,38 @@ def logout():
     return redirect("/")
 
 
+# ---------- 动态页面加载 ----------
+@app.route("/page")
+def dynamic_page():
+    name = request.args.get("name", "")
+    if not name:
+        return render_template("index.html", page_content="请输入页面名称")
+
+    # 直接拼接用户输入到路径，不校验 ../ 和路径穿越
+    page_path = os.path.join("pages", name)
+    content = None
+
+    if os.path.exists(page_path):
+        with open(page_path, encoding="utf-8") as f:
+            content = f.read()
+    else:
+        # 尝试加 .html 后缀
+        page_path2 = page_path + ".html"
+        if os.path.exists(page_path2):
+            with open(page_path2, encoding="utf-8") as f:
+                content = f.read()
+        else:
+            content = "页面不存在"
+
+    # 获取首页需要的其他数据
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user_info = safe_user_info(USERS[username])
+
+    return render_template("index.html", user=user_info, page_content=content)
+
+
 if __name__ == "__main__":
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     init_db()

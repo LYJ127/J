@@ -427,3 +427,41 @@ body {
 .recharge-form {
     width: 100%;
 }
+
+/* ---------- 动态页面内容 ---------- */
+.page-content-card {
+    max-width: 100%;
+}
+
+.page-content-card .help-content h2 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 16px;
+}
+
+.page-content-card .help-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.page-content-card .help-section:last-child {
+    border-bottom: none;
+}
+
+.page-content-card .help-section h3 {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.page-content-card .help-section p,
+.page-content-card .help-section ul {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.8;
+}
+
+.page-content-card .help-section ul {
+    padding-left: 20px;
+}

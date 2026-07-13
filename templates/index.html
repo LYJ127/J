@@ -17,6 +17,7 @@
         <div class="action-links">
             <a href="/profile" class="btn btn-outline">个人中心</a>
             <a href="/upload" class="btn btn-outline">上传头像</a>
+            <a href="/page?name=help" class="btn btn-outline">帮助中心</a>
         </div>
 
         <div class="search-section">
@@ -70,6 +71,12 @@
         <h2>请先登录</h2>
         <p>您尚未登录，请先登录系统。</p>
         <a href="/login" class="btn btn-primary">前往登录</a>
+    </div>
+{% endif %}
+
+{% if page_content %}
+    <div class="card page-content-card">
+        {{ page_content | safe }}
     </div>
 {% endif %}
 {% endblock %}
