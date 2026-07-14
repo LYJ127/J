@@ -280,6 +280,7 @@ def recharge():
 # ---------- 修改密码 ----------
 @app.route("/change-password", methods=["POST"])
 @login_required
+@csrf_required
 def change_password():
     username = request.form.get("username", "").strip()
     new_password = request.form.get("new_password", "")

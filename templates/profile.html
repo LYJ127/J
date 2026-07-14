@@ -29,6 +29,7 @@
     <div class="recharge-section">
         <h3>修改密码</h3>
         <form method="POST" action="/change-password" class="recharge-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="username" value="{{ user.username }}">
 
             <div class="form-group">
