@@ -277,6 +277,22 @@ def recharge():
     return redirect("/profile")
 
 
+# ---------- 修改密码 ----------
+@app.route("/change-password", methods=["POST"])
+@login_required
+def change_password():
+    username = request.form.get("username", "").strip()
+    new_password = request.form.get("new_password", "")
+
+    if username in USERS:
+        USERS[username]["password"] = generate_password_hash(new_password)
+        flash(f"用户 {username} 的密码已修改")
+    else:
+        flash("用户不存在")
+
+    return redirect("/profile")
+
+
 @app.route("/logout", methods=["POST"])
 def logout():
     session.clear()

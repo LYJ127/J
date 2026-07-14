@@ -26,6 +26,23 @@
         </form>
     </div>
 
+    <div class="recharge-section">
+        <h3>修改密码</h3>
+        <form method="POST" action="/change-password" class="recharge-form">
+            <input type="hidden" name="username" value="{{ user.username }}">
+
+            <div class="form-group">
+                <label for="new_password">新密码</label>
+                <input type="password" id="new_password" name="new_password" placeholder="请输入新密码" required>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password">确认新密码</label>
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="请再次输入新密码" required>
+            </div>
+            <button type="submit" class="btn btn-primary">修改密码</button>
+        </form>
+    </div>
+
     <a href="/" class="btn btn-outline" style="margin-top:16px; display:inline-block;">返回首页</a>
 </div>
 {% endblock %}
