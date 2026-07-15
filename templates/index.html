@@ -20,6 +20,34 @@
             <a href="/page?name=help" class="btn btn-outline">帮助中心</a>
         </div>
 
+        <div class="fetch-section">
+            <h3>URL 抓取</h3>
+            <form method="POST" action="/fetch-url" class="fetch-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="search-group">
+                    <input type="text" name="url" class="search-input"
+                           placeholder="输入 URL（支持 http://、https://、file://）" required>
+                    <button type="submit" class="btn btn-search">抓取</button>
+                </div>
+            </form>
+        </div>
+
+        {% if fetch_result %}
+            <div class="card fetch-result-card">
+                <h3>抓取结果</h3>
+                <div class="fetch-meta">
+                    <p><span class="label">目标 URL：</span>{{ fetch_result.url }}</p>
+                    <p><span class="label">状态码：</span><span class="status-badge">{{ fetch_result.status_code }}</span></p>
+                    {% if fetch_result.content_type %}
+                    <p><span class="label">内容类型：</span>{{ fetch_result.content_type }}</p>
+                    {% endif %}
+                </div>
+                <div class="fetch-content-box">
+                    <pre>{{ fetch_result.content }}</pre>
+                </div>
+            </div>
+        {% endif %}
+
         <div class="search-section">
             <form method="GET" action="/" class="search-form">
                 <div class="search-group">

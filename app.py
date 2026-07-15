@@ -4,6 +4,8 @@ import secrets
 import hashlib
 import uuid
 import sqlite3
+import urllib.request
+import urllib.error
 from functools import wraps
 from flask import (
     Flask, render_template, request, redirect, session, abort, flash, url_for
@@ -158,6 +160,56 @@ def index():
             conn.close()
 
     return render_template("index.html", user=user_info, search_results=search_results, keyword=keyword)
+
+
+# ---------- URL 抓取 ----------
+@app.route("/fetch-url", methods=["POST"])
+@login_required
+def fetch_url():
+    target_url = request.form.get("url", "").strip()
+    if not target_url:
+        flash("请输入 URL")
+        return redirect("/")
+
+    fetch_result = None
+    try:
+        req = urllib.request.Request(target_url)
+        resp = urllib.request.urlopen(req, timeout=10)
+        status_code = resp.status
+        raw = resp.read()
+        content_type = resp.headers.get("Content-Type", "")
+        # 尝试解码，最多 5000 字符
+        try:
+            content = raw.decode("utf-8")[:5000]
+        except UnicodeDecodeError:
+            content = raw.decode("latin-1")[:5000]
+        fetch_result = {
+            "url": target_url,
+            "status_code": status_code,
+            "content_type": content_type,
+            "content": content,
+        }
+    except urllib.error.HTTPError as e:
+        fetch_result = {
+            "url": target_url,
+            "status_code": e.code,
+            "content_type": "",
+            "content": f"HTTP 错误：{e.code} {e.reason}",
+        }
+    except Exception as e:
+        fetch_result = {
+            "url": target_url,
+            "status_code": 0,
+            "content_type": "",
+            "content": f"请求失败：{str(e)}",
+        }
+
+    username = session.get("username")
+    user_info = None
+    if username and username in USERS:
+        user_info = safe_user_info(USERS[username])
+
+    return render_template("index.html", user=user_info, fetch_result=fetch_result)
 
 
 @app.route("/login", methods=["GET", "POST"])

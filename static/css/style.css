@@ -465,3 +465,77 @@ body {
 .page-content-card .help-section ul {
     padding-left: 20px;
 }
+
+/* ---------- URL 抓取 ---------- */
+.fetch-section {
+    margin: 12px 0 16px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+}
+
+.fetch-section h3 {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.fetch-form {
+    width: 100%;
+}
+
+.fetch-result-card {
+    max-width: 100%;
+}
+
+.fetch-result-card h3 {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.fetch-meta {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: #f8f9ff;
+    border-radius: 6px;
+}
+
+.fetch-meta p {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+
+.fetch-meta p:last-child {
+    margin-bottom: 0;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.fetch-content-box {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 6px;
+    padding: 14px;
+    max-height: 400px;
+    overflow: auto;
+}
+
+.fetch-content-box pre {
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+}
