@@ -6,6 +6,9 @@ import uuid
 import sqlite3
 import urllib.request
 import urllib.error
+import urllib.parse
+import socket
+import ipaddress
 from functools import wraps
 from flask import (
     Flask, render_template, request, redirect, session, abort, flash, url_for
@@ -163,12 +166,46 @@ def index():
 
 
 # ---------- URL 抓取 ----------
+def is_internal_ip(host):
+    """检查主机名解析后的 IP 是否为内网地址"""
+    try:
+        addrs = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False  # 无法解析，后续 urlopen 会报错
+
+    for addr in addrs:
+        ip_str = addr[4][0]
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+            if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
 @app.route("/fetch-url", methods=["POST"])
 @login_required
 def fetch_url():
     target_url = request.form.get("url", "").strip()
     if not target_url:
         flash("请输入 URL")
+        return redirect("/")
+
+    # 1. 校验协议：只允许 http 和 https
+    parsed = urllib.parse.urlparse(target_url)
+    if parsed.scheme not in ("http", "https"):
+        flash("仅支持 http 和 https 协议的 URL")
+        return redirect("/")
+
+    # 2. 校验目标主机：不允许内网地址
+    host = parsed.hostname
+    if not host:
+        flash("无效的 URL")
+        return redirect("/")
+
+    if is_internal_ip(host):
+        flash("不允许访问内网地址")
         return redirect("/")
 
     fetch_result = None
@@ -178,7 +215,6 @@ def fetch_url():
         status_code = resp.status
         raw = resp.read()
         content_type = resp.headers.get("Content-Type", "")
-        # 尝试解码，最多 5000 字符
         try:
             content = raw.decode("utf-8")[:5000]
         except UnicodeDecodeError:
