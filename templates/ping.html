@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card ping-card">
+    <h2>Ping 网络诊断</h2>
+    <p class="ping-desc">输入 IP 地址或域名进行网络连通性测试</p>
+
+    {% if error %}
+        <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/ping" class="ping-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="search-group">
+            <input type="text" name="ip" class="search-input"
+                   placeholder="输入 IP 地址或域名" value="{{ ip or '' }}" required>
+            <button type="submit" class="btn btn-search">Ping</button>
+        </div>
+    </form>
+
+    {% if result %}
+        <div class="ping-output">
+            <div class="ping-output-header">
+                <span class="ping-cmd">$ ping -c 3 {{ ip }}</span>
+            </div>
+            <pre class="ping-console">{{ result }}</pre>
+        </div>
+    {% endif %}
+
+    <a href="/" class="btn btn-outline" style="margin-top:16px; display:inline-block;">返回首页</a>
+</div>
+{% endblock %}

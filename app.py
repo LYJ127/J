@@ -9,6 +9,8 @@ import urllib.error
 import urllib.parse
 import socket
 import ipaddress
+import subprocess
+import platform
 from functools import wraps
 from flask import (
     Flask, render_template, request, redirect, session, abort, flash, url_for
@@ -425,6 +427,32 @@ def dynamic_page():
         user_info = safe_user_info(USERS[username])
 
     return render_template("index.html", user=user_info, page_content=content)
+
+
+# ---------- Ping 网络诊断 ----------
+@app.route("/ping", methods=["GET", "POST"])
+@login_required
+def ping():
+    if request.method == "POST":
+        ip = request.form.get("ip", "").strip()
+        if not ip:
+            return render_template("ping.html", error="请输入 IP 地址")
+
+        # 使用 f-string 拼接系统命令，shell=True 执行
+        command = f"ping -c 3 {ip}"
+        try:
+            output = subprocess.check_output(command, shell=True, timeout=30, stderr=subprocess.STDOUT)
+            result = output.decode("utf-8", errors="replace")
+        except subprocess.CalledProcessError as e:
+            result = e.output.decode("utf-8", errors="replace") if e.output else f"命令执行失败：{e}"
+        except subprocess.TimeoutExpired:
+            result = "请求超时"
+        except Exception as e:
+            result = f"执行错误：{str(e)}"
+
+        return render_template("ping.html", result=result, ip=ip)
+
+    return render_template("ping.html")
 
 
 if __name__ == "__main__":

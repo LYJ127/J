@@ -539,3 +539,52 @@ body {
     word-break: break-all;
     margin: 0;
 }
+
+/* ---------- Ping 测试 ---------- */
+.ping-card {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.ping-desc {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 16px;
+}
+
+.ping-form {
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.ping-output {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.ping-output-header {
+    background: #2d2d2d;
+    padding: 8px 14px;
+    border-bottom: 1px solid #444;
+}
+
+.ping-cmd {
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    color: #89d185;
+}
+
+.ping-console {
+    background: #0d0d0d;
+    color: #00ff00;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 14px;
+    margin: 0;
+    max-height: 500px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
