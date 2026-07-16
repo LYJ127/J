@@ -430,6 +430,22 @@ def dynamic_page():
 
 
 # ---------- Ping 网络诊断 ----------
+def validate_ip_or_domain(target):
+    """校验输入是否为合法的 IP 地址或域名"""
+    import re
+    # 先尝试解析为 IP 地址
+    try:
+        ipaddress.ip_address(target)
+        return True
+    except ValueError:
+        pass
+    # 检查是否为合法域名（只允许字母、数字、点、短横）
+    domain_pattern = r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$'
+    if re.match(domain_pattern, target):
+        return True
+    return False
+
+
 @app.route("/ping", methods=["GET", "POST"])
 @login_required
 def ping():
@@ -438,10 +454,13 @@ def ping():
         if not ip:
             return render_template("ping.html", error="请输入 IP 地址")
 
-        # 使用 f-string 拼接系统命令，shell=True 执行
-        command = f"ping -c 3 {ip}"
+        # 校验输入是否合法
+        if not validate_ip_or_domain(ip):
+            return render_template("ping.html", error="请输入合法的 IP 地址或域名（如 8.8.8.8 或 example.com）")
+
+        # 改用参数列表方式执行，不使用 shell=True，彻底阻断命令注入
         try:
-            output = subprocess.check_output(command, shell=True, timeout=30, stderr=subprocess.STDOUT)
+            output = subprocess.check_output(["ping", "-c", "3", ip], timeout=30, stderr=subprocess.STDOUT)
             result = output.decode("utf-8", errors="replace")
         except subprocess.CalledProcessError as e:
             result = e.output.decode("utf-8", errors="replace") if e.output else f"命令执行失败：{e}"
