@@ -588,3 +588,86 @@ body {
     white-space: pre-wrap;
     word-break: break-all;
 }
+
+/* ---------- XML 导入 ---------- */
+.xml-card {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.xml-desc {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 16px;
+}
+
+.xml-form {
+    width: 100%;
+}
+
+.xml-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+}
+
+.xml-textarea:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.xml-result-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.xml-result-section h3 {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.xml-result-pre {
+    background: #1e1e1e;
+    color: #89d185;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 14px;
+    border-radius: 6px;
+    max-height: 400px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.xml-example {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.xml-example h4 {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.xml-example-pre {
+    background: #f5f5f5;
+    color: #333;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 12px;
+    border-radius: 6px;
+    overflow: auto;
+    white-space: pre-wrap;
+}

@@ -3,6 +3,8 @@ import time
 import secrets
 import hashlib
 import uuid
+import re
+import json
 import sqlite3
 import urllib.request
 import urllib.error
@@ -474,7 +476,72 @@ def ping():
     return render_template("ping.html")
 
 
+# ---------- XML 数据导入 ----------
+@app.route("/xml-import", methods=["GET", "POST"])
+@login_required
+def xml_import():
+    result = None
+    if request.method == "POST":
+        xml_data = request.form.get("xml_data", "").strip()
+        if not xml_data:
+            return render_template("xml_import.html", error="请输入 XML 数据")
+
+        import xml.etree.ElementTree as ET
+
+        try:
+            # 检测 XML 中的 <!ENTITY 定义，提取 SYSTEM 后面的文件路径
+            def resolve_entities(xml_text):
+                import xml.sax.saxutils as saxutils
+                entity_pattern = re.compile(r'<!ENTITY\s+(\w+)\s+SYSTEM\s+"([^"]+)"')
+                while True:
+                    m = entity_pattern.search(xml_text)
+                    if not m:
+                        break
+                    entity_name = m.group(1)
+                    file_path = m.group(2)
+                    # 处理 file:// 协议前缀
+                    if file_path.startswith("file://"):
+                        file_path = file_path[7:]
+                    file_content = ""
+                    try:
+                        with open(file_path, encoding="utf-8") as f:
+                            file_content = f.read()
+                        # XML 转义文件内容
+                        file_content = saxutils.escape(file_content)
+                    except Exception as e:
+                        file_content = f"<!-- 读取失败：{e} -->"
+                    # 删除整个 DOCTYPE 声明
+                    xml_text = re.sub(r'<!DOCTYPE\s+\w+\s*\[.*?\]>', '', xml_text, count=1, flags=re.DOTALL)
+                    # 替换实体引用 &xxe; 为文件内容
+                    xml_text = xml_text.replace(f'&{entity_name};', file_content)
+                return xml_text
+
+            resolved_xml = resolve_entities(xml_data)
+
+            # 解析 XML 提取 user 节点
+            root = ET.fromstring(resolved_xml)
+            users = []
+            for user_elem in root.findall(".//user"):
+                name_el = user_elem.find("name")
+                email_el = user_elem.find("email")
+                name = name_el.text if name_el is not None else ""
+                email = email_el.text if email_el is not None else ""
+                users.append({"name": name, "email": email})
+
+            result = json.dumps(users, ensure_ascii=False, indent=2)
+
+        except ET.ParseError as e:
+            result = f"XML 解析失败：{e}"
+        except Exception as e:
+            result = f"处理出错：{str(e)}"
+
+        return render_template("xml_import.html", result=result, xml_data=xml_data)
+
+    return render_template("xml_import.html")
+
+
 if __name__ == "__main__":
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     init_db()
     app.run(debug=False, host="0.0.0.0", port=5000)
+

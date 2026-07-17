@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card xml-card">
+    <h2>XML 数据导入</h2>
+    <p class="xml-desc">输入包含 user 节点的 XML 数据，系统将解析并提取用户信息</p>
+
+    {% if error %}
+        <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/xml-import" class="xml-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-group">
+            <label for="xml_data">XML 数据</label>
+            <textarea id="xml_data" name="xml_data" class="xml-textarea" rows="12" placeholder="在此输入 XML 数据...">{{ xml_data or '' }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">导入</button>
+    </form>
+
+    {% if result %}
+        <div class="xml-result-section">
+            <h3>解析结果</h3>
+            <pre class="xml-result-pre">{{ result }}</pre>
+        </div>
+    {% endif %}
+
+    <div class="xml-example">
+        <h4>示例 XML</h4>
+        <pre class="xml-example-pre">{% raw %}&lt;?xml version="1.0"?&gt;
+&lt;data&gt;
+    &lt;user&gt;
+        &lt;name&gt;张三&lt;/name&gt;
+        &lt;email&gt;zhangsan@example.com&lt;/email&gt;
+    &lt;/user&gt;
+    &lt;user&gt;
+        &lt;name&gt;李四&lt;/name&gt;
+        &lt;email&gt;lisi@example.com&lt;/email&gt;
+    &lt;/user&gt;
+&lt;/data&gt;{% endraw %}
+    </div>
+
+    <a href="/" class="btn btn-outline" style="margin-top:16px; display:inline-block;">返回首页</a>
+</div>
+{% endblock %}
